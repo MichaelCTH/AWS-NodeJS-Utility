@@ -22,21 +22,21 @@ module.exports.awsListUsers = async (maxItems = 10) => {
   }
 };
 
-module.exports.awsCreateUsers = async (userList = []) => {
+module.exports.awsCreateUsers = async (userList = [], group = "Trainees") => {
   const iam = new AWS.IAM(API_VERSION.IAM);
-  userList.forEach(async (username) => {
+  userList.forEach(async (user) => {
     try {
-      await iam.createUser({ UserName: username }).promise();
+      await iam.createUser({ UserName: user.name }).promise();
       await iam
         .createLoginProfile({
-          Password: username,
-          UserName: username,
+          UserName: user.name,
+          Password: user.pass || user.name,
           PasswordResetRequired: false,
         })
         .promise();
-      await iam.addUserToGroup({ GroupName: "Trainees", UserName: username }).promise();
+      await iam.addUserToGroup({ GroupName: group, UserName: user.name }).promise();
     } catch (err) {
-      console.log(`Error when create user [${username}], code: ${err.code}`);
+      console.log(`Error when create user [${user.name}], code: ${err.code}`);
     }
   });
 };
