@@ -23,33 +23,39 @@ module.exports.awsListUsers = async (maxItems = 10) => {
 };
 
 module.exports.awsCreateUsers = async (userList = [], group = "Trainees") => {
+  if (userList.length === 0) return;
+
   const iam = new AWS.IAM(API_VERSION.IAM);
-  userList.forEach(async (user) => {
+  for (let i = 0; i < userList.length; i++) {
     try {
-      await iam.createUser({ UserName: user.name }).promise();
+      await iam.createUser({ UserName: userList[i].name }).promise();
       await iam
         .createLoginProfile({
-          UserName: user.name,
-          Password: user.pass || user.name,
+          UserName: userList[i].name,
+          Password: userList[i].pass || userList[i].name,
           PasswordResetRequired: false,
         })
         .promise();
-      await iam.addUserToGroup({ GroupName: group, UserName: user.name }).promise();
+      await iam.addUserToGroup({ GroupName: group, UserName: userList[i].name }).promise();
     } catch (err) {
-      console.log(`Error when create user [${user.name}], code: ${err.code}`);
+      console.log(`Error when create user [${userList[i].name}], code: ${err.code}`);
     }
-  });
+  }
 };
 
-module.exports.awsDeleteUsers = async (userList = []) => {
+module.exports.awsDeleteUsers = async (userList = [], group = "Trainees") => {
+  if (userList.length === 0) return;
+
   const iam = new AWS.IAM(API_VERSION.IAM);
-  userList.forEach(async (username) => {
+  for (let i = 0; i < userList.length; i++) {
     try {
-      await iam.deleteUser({ UserName: username }).promise();
+      await iam.deleteLoginProfile({ UserName: userList[i] }).promise();
+      await iam.removeUserFromGroup({ UserName: userList[i], GroupName: group }).promise();
+      await iam.deleteUser({ UserName: userList[i] }).promise();
     } catch (err) {
-      console.log(`Error when delete user [${username}], code: ${err.code}`);
+      console.log(`Error when delete user '${userList[i]}', code: ${err.code}`);
     }
-  });
+  }
 };
 
 module.exports.awsListEC2 = async () => {
@@ -64,6 +70,8 @@ module.exports.awsListEC2 = async () => {
 };
 
 module.exports.awsDeleteEC2 = async (instanceIDs = []) => {
+  if (instanceIDs.length === 0) return;
+
   const ec2 = new AWS.EC2(API_VERSION.EC2);
   try {
     await ec2.terminateInstances({ InstanceIds: instanceIDs }).promise();
@@ -84,6 +92,8 @@ module.exports.awsListDynamoTables = async (limit = 30) => {
 };
 
 module.exports.awsDeleteDynamoTables = async (tableNames = []) => {
+  if (tableNames.length === 0) return;
+
   const ddb = new AWS.DynamoDB(API_VERSION.Dynamo);
   tableNames.forEach(async (tableName) => {
     try {
@@ -106,6 +116,8 @@ module.exports.awsListLambda = async () => {
 };
 
 module.exports.awsDeleteLambda = async (functions = []) => {
+  if (functions.length === 0) return;
+
   const lambda = new AWS.Lambda(API_VERSION.Lambda);
   functions.forEach(async (func) => {
     try {
@@ -128,6 +140,8 @@ module.exports.awsListRestApis = async () => {
 };
 
 module.exports.awsDeleteRestApis = async (apis = []) => {
+  if (apis.length === 0) return;
+
   const apiGateway = new AWS.APIGateway(API_VERSION.APIGateway);
   apis.forEach(async (api) => {
     try {
