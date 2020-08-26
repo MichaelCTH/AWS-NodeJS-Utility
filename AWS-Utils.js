@@ -43,6 +43,21 @@ module.exports.awsCreateUsers = async (userList = [], group = "Trainees") => {
   }
 };
 
+async function awsRemoveAccessKey(username) {
+  if (!username) return;
+
+  const iam = new AWS.IAM(API_VERSION.IAM);
+  try {
+    const keys =
+      (await iam.listAccessKeys({ UserName: username }).promise()).AccessKeyMetadata || [];
+    for (let i = 0; i < keys.length; i++) {
+      await iam.deleteAccessKey({ AccessKeyId: keys[i].AccessKeyId, UserName: username }).promise();
+    }
+  } catch (err) {
+    console.log(`Error when delete accessKey for '${username}', code: ${err.code}`);
+  }
+}
+
 module.exports.awsDeleteUsers = async (userList = [], group = "Trainees") => {
   if (userList.length === 0) return;
 
@@ -51,6 +66,7 @@ module.exports.awsDeleteUsers = async (userList = [], group = "Trainees") => {
     try {
       await iam.deleteLoginProfile({ UserName: userList[i] }).promise();
       await iam.removeUserFromGroup({ UserName: userList[i], GroupName: group }).promise();
+      await awsRemoveAccessKey(userList[i]);
       await iam.deleteUser({ UserName: userList[i] }).promise();
     } catch (err) {
       console.log(`Error when delete user '${userList[i]}', code: ${err.code}`);

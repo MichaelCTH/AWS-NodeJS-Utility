@@ -47,7 +47,7 @@ const main = async () => {
   let tables = await awsUtils.awsListDynamoTables(LIMIT);
 
   // =====================================
-  // Interrupter
+  // ## Interrupter ##
   usernameToDel = ["Michael_Chen2@epam.com"];
   ec2s = [];
   apis = [];
