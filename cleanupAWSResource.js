@@ -51,20 +51,9 @@ const main = async () => {
     name: api.name,
   }));
 
-  let lambdas = (await awsUtils.awsListLambda()).map(
-    (func) => func.FunctionName
-  );
+  let lambdas = (await awsUtils.awsListLambda()).map((func) => func.FunctionName);
 
   let tables = await awsUtils.awsListDynamoTables(LIMIT);
-
-  // =====================================
-  // ## Interrupter ##
-  // usernameToDel = [];
-  // ec2s = [];
-  // apis = [];
-  // lambdas = [];
-  // tables = [];
-  // =====================================
 
   console.log("Users need to be removed:", usernameToDel);
   console.log("EC2 need to be removed:", ec2s);
@@ -72,22 +61,19 @@ const main = async () => {
   console.log("Lambdas need to be removed:", lambdas);
   console.log("Tables need to be removed:", tables);
 
-  rl.question(
-    "Would you like to delete all those data from AWS? [Y/N] ",
-    async (ans) => {
-      if (ans === "Y") {
-        await awsResourceDeletion(
-          usernameToDel,
-          ec2s.map((i) => i.id),
-          apis.map((i) => i.id),
-          lambdas,
-          tables
-        );
-      }
-      rl.close();
-      exit();
+  rl.question("Would you like to delete all those data from AWS? [Y/N] ", async (ans) => {
+    if (ans === "Y") {
+      await awsResourceDeletion(
+        usernameToDel,
+        ec2s.map((i) => i.id),
+        apis.map((i) => i.id),
+        lambdas,
+        tables
+      );
     }
-  );
+    rl.close();
+    exit();
+  });
 };
 
 main();
