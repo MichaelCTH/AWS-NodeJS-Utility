@@ -1,6 +1,8 @@
 /* eslint-disable no-console */
 const AWS = require("aws-sdk");
 
+const API_GATEWAY_QUOTA = 20; // seconds every deletion
+
 const delay = (sec) => new Promise((resolve) => setTimeout(() => resolve(), sec * 1000));
 
 const API_VERSION = {
@@ -28,19 +30,19 @@ module.exports.awsCreateUsers = async (userList = [], group = "Trainees") => {
   if (userList.length === 0) return;
 
   const iam = new AWS.IAM(API_VERSION.IAM);
-  for (let i = 0; i < userList.length; i++) {
+  for (user of userList) {
     try {
-      await iam.createUser({ UserName: userList[i].name }).promise();
+      await iam.createUser({ UserName: user.name }).promise();
       await iam
         .createLoginProfile({
-          UserName: userList[i].name,
-          Password: userList[i].pass || userList[i].name,
+          UserName: user.name,
+          Password: user.pass || user.name,
           PasswordResetRequired: false,
         })
         .promise();
-      await iam.addUserToGroup({ GroupName: group, UserName: userList[i].name }).promise();
+      await iam.addUserToGroup({ GroupName: group, UserName: user.name }).promise();
     } catch (err) {
-      console.log(`Error when create user [${userList[i].name}], code: ${err.code}`);
+      console.log(`Error when create user [${user.name}], code: ${err.code}`);
     }
   }
 };
@@ -52,10 +54,10 @@ async function awsRemoveAccessKey(username) {
   try {
     const keys =
       (await iam.listAccessKeys({ UserName: username }).promise()).AccessKeyMetadata || [];
-    for (let i = 0; i < keys.length; i++) {
+    for (key of keys) {
       await iam
         .deleteAccessKey({
-          AccessKeyId: keys[i].AccessKeyId,
+          AccessKeyId: key.AccessKeyId,
           UserName: username,
         })
         .promise();
@@ -69,14 +71,14 @@ module.exports.awsDeleteUsers = async (userList = [], group = "Trainees") => {
   if (userList.length === 0) return;
 
   const iam = new AWS.IAM(API_VERSION.IAM);
-  for (let i = 0; i < userList.length; i++) {
+  for (user of userList) {
     try {
-      await iam.deleteLoginProfile({ UserName: userList[i] }).promise();
-      await iam.removeUserFromGroup({ UserName: userList[i], GroupName: group }).promise();
-      await awsRemoveAccessKey(userList[i]);
-      await iam.deleteUser({ UserName: userList[i] }).promise();
+      await iam.deleteLoginProfile({ UserName: user }).promise();
+      await iam.removeUserFromGroup({ UserName: user, GroupName: group }).promise();
+      await awsRemoveAccessKey(user);
+      await iam.deleteUser({ UserName: user }).promise();
     } catch (err) {
-      console.log(`Error when delete user '${userList[i]}', code: ${err.code}`);
+      console.log(`Error when delete user '${user}', code: ${err.code}`);
     }
   }
 };
@@ -118,11 +120,11 @@ module.exports.awsDeleteDynamoTables = async (tableNames = []) => {
   if (tableNames.length === 0) return;
 
   const ddb = new AWS.DynamoDB(API_VERSION.Dynamo);
-  for (let i = 0; i < tableNames.length; i++) {
+  for (tableName of tableNames) {
     try {
-      await ddb.deleteTable({ TableName: tableNames[i] }).promise();
+      await ddb.deleteTable({ TableName: tableName }).promise();
     } catch (err) {
-      console.log(`Error when delete table [${tableNames[i]}], code: ${err.code}`);
+      console.log(`Error when delete table [${tableName}], code: ${err.code}`);
     }
   }
 };
@@ -142,11 +144,11 @@ module.exports.awsDeleteLambda = async (functions = []) => {
   if (functions.length === 0) return;
 
   const lambda = new AWS.Lambda(API_VERSION.Lambda);
-  for (let i = 0; i < functions.length; i++) {
+  for (func of functions) {
     try {
-      await lambda.deleteFunction({ FunctionName: functions[i] }).promise();
+      await lambda.deleteFunction({ FunctionName: func }).promise();
     } catch (err) {
-      console.log(`Error when delete lambda function [${functions[i]}], code: ${err.code}`);
+      console.log(`Error when delete lambda function [${func}], code: ${err.code}`);
     }
   }
 };
@@ -166,13 +168,12 @@ module.exports.awsDeleteRestApis = async (apis = []) => {
   if (apis.length === 0) return;
 
   const apiGateway = new AWS.APIGateway(API_VERSION.APIGateway);
-  for (let i = 0; i < apis.length; i++) {
+  for (api of apis) {
     try {
-      await apiGateway.deleteRestApi({ restApiId: apis[i] }).promise();
-      // * according to AWS Gateway quotas, only allow 1 request every 30 sec per account
-      await delay(30);
+      await apiGateway.deleteRestApi({ restApiId: api }).promise();
+      await delay(API_GATEWAY_QUOTA);
     } catch (err) {
-      console.log(`Error when delete Rest API [${apis[i]}], code: ${err.code}`);
+      console.log(`Error when delete Rest API [${api}], code: ${err.code}`);
     }
   }
 };

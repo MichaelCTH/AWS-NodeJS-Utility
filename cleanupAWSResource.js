@@ -12,26 +12,12 @@ const rl = readline.createInterface({
 });
 
 const awsResourceDeletion = async (username, ec2s, apis, lambdas, tables) => {
-  // * EC2
-  console.log("Deleting EC2 machines...");
   await awsUtils.awsDeleteEC2(ec2s);
-  console.log("EC2 removal completed");
-  // * API
-  console.log("Deleting Rest APIs...");
   await awsUtils.awsDeleteRestApis(apis);
-  console.log("Rest API removal completed");
-  // * Lambda
-  console.log("Deleting Lambdas functions...");
   await awsUtils.awsDeleteLambda(lambdas);
-  console.log("Lambdas removal completed");
-  // * Tables
-  console.log("Deleting Dynamo tables...");
   await awsUtils.awsDeleteDynamoTables(tables);
-  console.log("Dynamo table removal completed");
-  // * Users
-  console.log("Deleting Users...", username);
   await awsUtils.awsDeleteUsers(username);
-  console.log("User removal completed");
+  console.log("============= Completed =============");
 };
 
 const main = async () => {
